@@ -1,6 +1,19 @@
+<div align="center">
+
+<img src="logo.png" alt="Wayback Machine" width="200" onerror="this.style.display='none'"/>
+
 # waybackurls
 
-A simple Node.js package to fetch historical URLs from the Wayback Machine. Available as both a CLI tool and a library for programmatic use.
+**A simple Node.js package to fetch historical URLs from the Wayback Machine**
+
+Available as both a CLI tool and a library for programmatic use.
+
+[![npm version](https://img.shields.io/npm/v/waybackurls.svg)](https://www.npmjs.com/package/waybackurls)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
+</div>
+
+---
 
 ## Installation
 
