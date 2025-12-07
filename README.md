@@ -115,4 +115,4 @@ This tool queries the [Wayback Machine CDX API](https://github.com/internetarchi
 
 ## License
 
-ISC
+This project is licensed under the [MIT License](LICENSE).
