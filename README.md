@@ -9,7 +9,7 @@
 Available as both a CLI tool and a library for programmatic use.
 
 [![npm version](https://img.shields.io/npm/v/waybackurls.svg)](https://www.npmjs.com/package/waybackurls)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
