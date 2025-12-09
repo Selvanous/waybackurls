@@ -3,13 +3,156 @@
 const { fetchWaybackUrls } = require('../index');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
+
+// Get package version
+const packageJson = require('../package.json');
+const CURRENT_VERSION = packageJson.version;
+const PACKAGE_NAME = packageJson.name;
+
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  
+  // Text colors
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m',
+  
+  // Background colors
+  bgRed: '\x1b[41m',
+  bgGreen: '\x1b[42m',
+  bgYellow: '\x1b[43m',
+  bgBlue: '\x1b[44m'
+};
+
+// ASCII art banner
+function showBanner() {
+  console.log(`${colors.cyan}
+                     _                _               _     
+__      ____ _ _   _| |__   __ _  ___| | ___   _ _ __| |___ 
+\\ \\ /\\ / / _\` | | | | '_ \\ / _\` |/ __| |/ / | | | '__| / __|
+ \\ V  V / (_| | |_| | |_) | (_| | (__|   <| |_| | |  | \\__ \\
+  \\_/\\_/ \\__,_|\\__, |_.__/ \\__,_|\\___|_|\\_\\\\__,_|_|  |_|___/
+               |___/                                        
+${colors.reset}${colors.dim}
+                                        Version: ${CURRENT_VERSION}${colors.reset}
+  `);
+}
+
+// Check for latest version from npm
+async function checkLatestVersion() {
+  return new Promise((resolve) => {
+    https.get(`https://registry.npmjs.org/${PACKAGE_NAME}/latest`, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const pkg = JSON.parse(data);
+          resolve(pkg.version);
+        } catch (error) {
+          resolve(null);
+        }
+      });
+    }).on('error', () => {
+      resolve(null);
+    });
+  });
+}
+
+// Compare versions
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  
+  for (let i = 0; i < 3; i++) {
+    if (parts1[i] > parts2[i]) return 1;
+    if (parts1[i] < parts2[i]) return -1;
+  }
+  return 0;
+}
+
+// Show version info with update check
+async function showVersion() {
+  showBanner();
+  console.log(`${colors.blue}Checking for updates...${colors.reset}\n`);
+  
+  const latestVersion = await checkLatestVersion();
+  
+  if (!latestVersion) {
+    console.log(`${colors.yellow}⚠️  Could not check for updates (network error or package not found)${colors.reset}\n`);
+    return;
+  }
+  
+  const comparison = compareVersions(latestVersion, CURRENT_VERSION);
+  
+  if (comparison > 0) {
+    console.log(`${colors.green}📦 Update available: ${colors.yellow}${CURRENT_VERSION}${colors.reset} → ${colors.green}${latestVersion}${colors.reset}`);
+    console.log(`\n${colors.cyan}To update, run:${colors.reset}\n`);
+    console.log(`  ${colors.bright}npm install -g ${PACKAGE_NAME}@latest${colors.reset}`);
+    console.log(`  ${colors.dim}# or${colors.reset}`);
+    console.log(`  ${colors.bright}npm update -g ${PACKAGE_NAME}${colors.reset}\n`);
+  } else {
+    console.log(`${colors.green}✓ You are using the latest version (${CURRENT_VERSION})${colors.reset}\n`);
+  }
+}
+
+// Update package
+async function updatePackage() {
+  showBanner();
+  console.log(`${colors.blue}Checking for updates...${colors.reset}\n`);
+  
+  const latestVersion = await checkLatestVersion();
+  
+  if (!latestVersion) {
+    console.error(`${colors.red}⚠️  Could not check for updates (network error or package not found)${colors.reset}`);
+    process.exit(1);
+  }
+  
+  const comparison = compareVersions(latestVersion, CURRENT_VERSION);
+  
+  if (comparison > 0) {
+    console.log(`${colors.green}📦 Update available: ${colors.yellow}${CURRENT_VERSION}${colors.reset} → ${colors.green}${latestVersion}${colors.reset}`);
+    console.log(`\n${colors.cyan}Updating ${PACKAGE_NAME}...${colors.reset}\n`);
+    
+    const { spawn } = require('child_process');
+    const updateProcess = spawn('npm', ['install', '-g', `${PACKAGE_NAME}@latest`], {
+      stdio: 'inherit',
+      shell: true
+    });
+    
+    updateProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log(`\n${colors.green}✓ Successfully updated to version ${latestVersion}${colors.reset}`);
+      } else {
+        console.error(`\n${colors.red}✗ Update failed with exit code ${code}${colors.reset}`);
+        process.exit(code);
+      }
+    });
+  } else {
+    console.log(`${colors.green}✓ You are already using the latest version (${CURRENT_VERSION})${colors.reset}\n`);
+    process.exit(0);
+  }
+}
 
 // Parse command line arguments
 function parseArgs(args) {
-  const parsed = { domain: null, output: null };
+  const parsed = { domain: null, output: null, showVersion: false, update: false, json: false };
   
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '-d' || args[i] === '--domain') {
+    if (args[i] === '-v' || args[i] === '--version') {
+      parsed.showVersion = true;
+    } else if (args[i] === '--update') {
+      parsed.update = true;
+    } else if (args[i] === '-j' || args[i] === '--json') {
+      parsed.json = true;
+    } else if (args[i] === '-d' || args[i] === '--domain') {
       parsed.domain = args[i + 1];
       i++;
     } else if (args[i] === '-o' || args[i] === '--output') {
@@ -24,48 +167,153 @@ function parseArgs(args) {
   return parsed;
 }
 
+// Validate domain name syntax
+function isValidDomain(domain) {
+  if (!domain || typeof domain !== 'string') {
+    return false;
+  }
+  
+  // Remove protocol if present
+  domain = domain.replace(/^https?:\/\//, '');
+  
+  // Remove path if present
+  domain = domain.split('/')[0];
+  
+  // Remove port if present
+  domain = domain.split(':')[0];
+  
+  // Check for empty string after cleanup
+  if (!domain || domain.length === 0) {
+    return false;
+  }
+  
+  // Basic domain validation regex
+  // - Must contain at least one dot (e.g., example.com)
+  // - Can contain letters, numbers, hyphens, and dots
+  // - Parts between dots must not start or end with hyphen
+  // - Must not start or end with a dot
+  // - TLD must be at least 2 characters
+  const domainRegex = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63}(?<!-))*\.[a-z]{2,}$/i;
+  
+  return domainRegex.test(domain);
+}
+
+// Normalize domain for validation
+function normalizeDomain(domain) {
+  if (!domain) return domain;
+  
+  // Remove protocol
+  domain = domain.replace(/^https?:\/\//, '');
+  
+  // Remove path
+  domain = domain.split('/')[0];
+  
+  // Remove port
+  domain = domain.split(':')[0];
+  
+  return domain;
+}
+
 function showUsage() {
-  console.log(`Usage: waybackurls -d <domain> [-o <output-file>]
+  console.log(`Usage: waybackurls -d <domain> [-o <output-file>] [-j]
 
 Options:
   -d, --domain <domain>    Domain to fetch URLs for (required)
   -o, --output <file>      Output file (optional, defaults to stdout)
+  -j, --json               Output results in JSON format
+  -v, --version            Show version information and check for updates
+      --update             Update to the latest version
 
 Examples:
-  waybackurls -d example.com
-  waybackurls -d example.com -o results.txt
+  waybackurls -d skillverta.com
+  waybackurls -d eventneo.com -o results.txt
+  waybackurls -d example.com --json -o results.json
   waybackurls example.com (legacy syntax)
+  waybackurls --version
+  waybackurls --update
 `);
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   
+  // Handle update flag
+  if (args.update) {
+    await updatePackage();
+    return;
+  }
+  
+  // Handle version flag
+  if (args.showVersion) {
+    await showVersion();
+    process.exit(0);
+  }
+  
+  // Show banner for all other commands
+  showBanner();
+  
   if (!args.domain) {
     showUsage();
     process.exit(1);
   }
   
+  // Validate domain syntax
+  const normalizedDomain = normalizeDomain(args.domain);
+  if (!isValidDomain(normalizedDomain)) {
+    console.error(`${colors.red}Error: Invalid domain name syntax: "${args.domain}"${colors.reset}`);
+    console.error('');
+    console.error(`${colors.cyan}Valid examples:${colors.reset}`);
+    console.error(`  ${colors.green}- example.com${colors.reset}`);
+    console.error(`  ${colors.green}- subdomain.example.com${colors.reset}`);
+    console.error(`  ${colors.green}- https://example.com (protocol will be removed)${colors.reset}`);
+    console.error(`  ${colors.green}- example.com/path (path will be removed)${colors.reset}`);
+    console.error('');
+    console.error(`${colors.cyan}Invalid examples:${colors.reset}`);
+    console.error(`  ${colors.red}- help (no TLD)${colors.reset}`);
+    console.error(`  ${colors.red}- -invalid${colors.reset}`);
+    console.error(`  ${colors.red}- .example.com${colors.reset}`);
+    process.exit(1);
+  }
+  
   try {
-    console.error(`Fetching URLs for ${args.domain}...`);
-    const urls = await fetchWaybackUrls(args.domain);
+    console.error(`${colors.blue}Fetching URLs for ${colors.cyan}${normalizedDomain}${colors.blue}...${colors.reset}`);
+    const urls = await fetchWaybackUrls(normalizedDomain);
     
     if (urls.length === 0) {
-      console.error('No URLs found.');
+      console.error(`${colors.yellow}No URLs found.${colors.reset}`);
       process.exit(0);
     }
     
-    const output = urls.join('\n') + '\n';
+    let output;
+    
+    if (args.json) {
+      // Create JSON output with metadata
+      const jsonOutput = {
+        domain: normalizedDomain,
+        timestamp: new Date().toISOString(),
+        total_urls: urls.length,
+        urls: urls.map(url => ({
+          url: url,
+          protocol: url.match(/^https?:/)?.[0] || 'http:',
+          path: url.split('/').slice(3).join('/') || '/',
+          extension: path.extname(url) || null
+        }))
+      };
+      output = JSON.stringify(jsonOutput, null, 2) + '\n';
+    } else {
+      output = urls.join('\n') + '\n';
+    }
     
     if (args.output) {
       const outputPath = path.resolve(args.output);
       fs.writeFileSync(outputPath, output, 'utf8');
-      console.error(`✓ Saved ${urls.length} URLs to ${args.output}`);
+      const format = args.json ? 'JSON' : 'text';
+      console.error(`${colors.green}✓ Saved ${colors.bright}${urls.length}${colors.reset}${colors.green} URLs to ${colors.cyan}${args.output}${colors.reset} ${colors.dim}(${format})${colors.reset}`);
     } else {
       process.stdout.write(output);
     }
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error(`${colors.red}Error: ${error.message}${colors.reset}`);
     process.exit(1);
   }
 }
